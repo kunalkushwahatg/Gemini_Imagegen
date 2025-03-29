@@ -1,4 +1,3 @@
-from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
@@ -8,12 +7,14 @@ from google.genai import types
 from io import BytesIO
 import base64
 import os
+from fastapi import FastAPI, HTTPException
 import json
+import re
 
 # Load environment variables
 load_dotenv()
 
-# Get API key
+# Get API key                                                                                                                                                                                                                                                     
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY is not set in environment variables.")
@@ -42,7 +43,6 @@ async def generate_text(request: TextRequest):
     model="gemini-2.0-flash",
     contents=contents 
     )
-    print(response.text)
     return response.text
 
 
@@ -123,7 +123,31 @@ async def get_trends():
     return trends
 
 
-
-
+@app.post("/get-hashtags")
+async def generate_text(request: TextRequest):
+    contents = f"""
+    You are a hashtag generator.
+    you are given a description of a product and you need to generate 10 hashtags for the product.
+    the hashtags should be relevant to the product and should be in the style of the product.
+    the product description is: {request.prompt}
+    Note the output should be a json array of strings. with key as "hashtags" and value as an array of strings.
+    """
+    response = client.models.generate_content(
+    model="gemini-2.0-flash",
+    contents=contents 
+    )
+    print(response.text)
+    match = re.search(r"\{.*\}", response.text, re.DOTALL)
+    
+    if match:
+        json_str = match.group(0)  # Extract the JSON part
+        try:
+            json_response = json.loads(json_str)
+            return json_response  # Return the extracted JSON
+        except json.JSONDecodeError:
+            return {"error": "Invalid JSON response"}
+    else:
+        return {"error": "No JSON found in response"}
+    #out {'hashtags': ['#CatsofInstagram', '#Instacat', '#Meow', '#Kitty', '#Feline', '#CatLover', '#CuteCats', '#Caturday', '#Purrfect', '#CatsOfTwitter']}
 
 # run the app: uvicorn app:app --reload

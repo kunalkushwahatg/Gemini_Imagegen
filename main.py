@@ -8,6 +8,7 @@ from google.genai import types
 from io import BytesIO
 import base64
 import os
+import json
 
 # Load environment variables
 load_dotenv()
@@ -108,19 +109,21 @@ async def edit_image(request: EditImageRequest):
                     image = Image.open(BytesIO((part.inline_data.data)))
                     image.save('gemini-edited-image.png')
                     #read the image
-                    with open('gemini-edited-image.png', 'rb') as image_file:
+                    with open('gemini-native-image.png', 'rb') as image_file:
                         image_data = image_file.read()
                         image_str = base64.b64encode(image_data).decode("utf-8")     
                         return {"image": image_str}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
 
-    # to run the app: uvicorn app:app --reload
-
-
-
-
-              
+@app.get("/get-trends")
+async def get_trends():
+    print("Getting trends")
+    trends = json.load(open('trending.json'))
+    return trends
 
 
+
+
+
+# run the app: uvicorn app:app --reload
